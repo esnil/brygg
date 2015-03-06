@@ -1,0 +1,55 @@
+<html>
+<head>
+<title>Alfie Brygg-Kontroll v1</title>
+</head>
+<script src="static/brygg.js"></script>
+<script>
+
+window.onload=function()
+{
+    onresize();
+
+    draw();
+    
+    registermouseevents();
+}
+
+</script>
+
+<body>
+<div>
+
+<canvas id="canvas" width="100" height="100" style="border:1px solid #000000;">
+</canvas> 
+
+<div id="controls" style="border:1px solid #000000;">
+
+Tid:<input id="timenow" type="text"> </input><br/>
+Temperatur:<input id="realtemp" type="text"> </input><br/>
+Börvärde:<input id="shouldtemp" type="text"> </input><br/>
+<table>
+<tr>
+<td> <button onclick="rewind()">&lt;&lt;</button></td>
+<td> <button onclick="play()">Play</button></td>
+<td> <button onclick="forward()">&gt;&gt;</button></td>
+</tr>
+</table>
+
+Kylning:<input id="cooling" type="text"> </input><br/>
+Värmning:<input id="heating" type="text"> </input><br/>
+
+
+</div> 
+
+
+</div>
+
+
+
+
+
+
+
+
+</body>
+</html>
