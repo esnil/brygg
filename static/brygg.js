@@ -256,6 +256,7 @@ function removeAll()
     
     save();
     draw();
+    update_text();
 }
 function onMouseClick(e)
 {
@@ -272,7 +273,25 @@ function onMouseClick(e)
 
     save();
     draw();
+    update_text();
     
+}
+
+function update_text()
+{
+    var e=document.getElementById('textvalues');
+    
+    var s='<table><tr><td>Tid</td><td>Temp</td></tr>';
+    
+    for(var i=0;i<targetpath.length;++i)
+    {
+        var minval=targetpath[i][0];
+        var degval=targetpath[i][1];
+        s+='<tr><td><input type="text" size="3" value="'+minval+'" /></td> ';
+        s+='<td><input type="text" size="3" value="'+degval+'" />°</td></tr> ';
+    }
+    s+="</table>";
+    e.innerHTML=s;
     
 }
 
