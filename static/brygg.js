@@ -8,7 +8,7 @@ degrees=100.0;
 
 timenow=4;
 
-targetpath=[60,61,61,61,62,62,63,64,65,63,61,59,57,55,50,45,38,20,21,22];
+targetpath=[[0,20],[10,60],[15,45],[50,26]];
 actualpath=[30,35,38,39,39,41,43,49,53,56,56,57,58,59,60,61,60,59,58,57,56,55,54,53,51,49,47,40];
 
 cx=400; //size of active portion of canvas
@@ -46,6 +46,11 @@ function fmt(x)
         return ''+x.toFixed(1);
     return '';
 }
+
+function getTargetPathAt(timenow)
+{
+    return 42; //not implemented
+}
 function draw() 
 {
     var timectl=document.getElementById('timenow');
@@ -54,10 +59,10 @@ function draw()
     var coolingctl=document.getElementById('cooling');
     var heatingctl=document.getElementById('heating');
     
-    if (actualpath[timenow] && targetpath[timenow])
+    var targ=getTargetPathAt(timenow);
+    if (actualpath[timenow] && targ)
     {
         var act=actualpath[timenow];
-        var targ=targetpath[timenow];
         if (act>targ+1.0)
         {
             coolingctl.value='På';
@@ -82,7 +87,7 @@ function draw()
     
     timectl.value=format(Math.floor(timenow/60),2)+":"+format(timenow%60,2);
     realtempctl.value=fmt(actualpath[timenow]);
-    shouldtempctl.value=fmt(targetpath[timenow]);
+    shouldtempctl.value=fmt(getTargetPathAt(timenow));
     
     var c=document.getElementById('canvas');
     var ctx = c.getContext("2d");
@@ -135,8 +140,8 @@ function draw()
    
     for(var i=0;i<targetpath.length;++i)
     {
-        var x1=minutes2x(i);
-        var y1=celsius2y(targetpath[i]);
+        var x1=minutes2x(targetpath[i][0]);
+        var y1=celsius2y(targetpath[i][1]);
         if (i==0)
             ctx.moveTo(x1,y1);
         else
@@ -219,83 +224,26 @@ function onresize()
     ry=cy/100.0;
 
 }
-
-last_minute=0;
-last_deg_c=0;
-    
-mousedrawing=0;
-function onMouseOut(e)
+function removeAll()
 {
-    mousedrawing=0;
+    targetpath=[];
+    
+    save();
+    draw();
 }
-function onMouseMove(e)
+function onMouseClick(e)
 {
     var mx=e.clientX;
     var my=e.clientY;
     var deg_c=(y2celsius(my));
     var minute=parseInt(x2minutes(mx));
     
-    if (e.buttons!=1)
-    {
-        mousedrawing=0;
-        return;
-    }    
 
-    if (minute<0 || minute>=minutes)
-        return;
-    
-    while(targetpath.length<minutes)
-        targetpath.push(0);
-        
-    if (mousedrawing!=1)
-    {
-        last_minute=minute;
-        last_deg=deg_c;   
-    }
-    var startmin=parseInt(last_minute);
-    var endmin=parseInt(minute);
-    var startdeg=last_deg_c;
-    var enddeg=deg_c;
-    if (startmin!=endmin)
-    {
-        var limit=0;
-        var delta_deg=(enddeg-startdeg)/(Math.abs(startmin-endmin));
-        var cnt=parseInt(Math.abs(endmin-startmin));
-        for(var i=0;i<cnt;++i)
-        {
-            targetpath[startmin]=startdeg;
-            if (startmin<endmin)
-                startmin+=1;
-            else
-                startmin-=1;
-            startdeg+=delta_deg;
-            limit+=1;
-            if (limit>10000)
-                break;
-        }
-    }
-    
-    targetpath[endmin]=enddeg;
-    
+    targetpath.push([minute,deg_c]);
+
+    save();
     draw();
-    /*
-    var c=document.getElementById('canvas');
-    var ctx = c.getContext("2d");
-    ctx.font = '15pt normal';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth=1.0;
-    ctx.beginPath();
-    ctx.moveTo(10,10);
-    ctx.lineTo(mx,my);
-    ctx.stroke();    
-    */
     
-    
-    
-    
-    mousedrawing=1;
-    last_minute=minute;
-    last_deg_c=deg_c;
     
 }
 
@@ -318,8 +266,26 @@ function forward()
 function registermouseevents()
 {
     var canvas=document.getElementById('canvas');
-    canvas.onmousemove=onMouseMove;
-    document.body.onmouseout=onMouseOut;
+    canvas.onclick=onMouseClick;
+
+
+}
+
+function save()
+{
+    var status=document.getElementById('status');
+    status.innerHTML='Saving';
+
+    $.ajax( {
+        type: "POST",
+        url: "/save",
+        data: '',
+        success: function( data ) {
+            var status=document.getElementById('status');
+            status.innerHTML='OK';
+        },
+        dataType:'json'    
+    });
 
 }
 
