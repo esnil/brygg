@@ -49,8 +49,34 @@ function fmt(x)
 
 function getTargetPathAt(timenow)
 {
-    return 42; //not implemented
+    if (targetpath.length==0)
+        return 0;
+    if (targetpath.length==1)
+        return targetpath[0][1];            
+    for(var i=0;i<targetpath.length-1;++i)
+    {
+        var a=targetpath[i];
+        var b=targetpath[i+1];
+        
+        var amin=a[0];
+        var bmin=b[0];
+        var adeg=a[1];
+        var bdeg=b[1];
+        
+        if (timenow>=amin && timenow<=bmin)
+        {
+            var p=(timenow-amin)/(bmin-amin);
+            var deg=adeg + (bdeg-adeg)*p;
+            return deg;
+        }                
+    }
+    if (timenow<=targetpath[0][0])
+        return targetpath[0][1];
+    if (timenow>=targetpath[targetpath.length-1][0])
+        return targetpath[targetpath.length-1][1];
+    return 0;
 }
+
 function draw() 
 {
     var timectl=document.getElementById('timenow');
@@ -238,8 +264,11 @@ function onMouseClick(e)
     var deg_c=(y2celsius(my));
     var minute=parseInt(x2minutes(mx));
     
+    if (targetpath.length==0 || targetpath[targetpath.length-1][0]<minute)
+    {
+        targetpath.push([minute,deg_c]);    
+    }
 
-    targetpath.push([minute,deg_c]);
 
     save();
     draw();
