@@ -16,6 +16,12 @@ cy=300;
 rx=1.33; //convesion constant
 ry=1.33;
 
+function MathMax(x,y)
+{
+    if (x>y)
+        return x;
+    return y;
+}
 function format(num, l) {
     var ret = '' + num;
     while (ret.length < l)
@@ -46,7 +52,16 @@ function fmt(x)
         return ''+x.toFixed(1);
     return '';
 }
-
+function add_path_point()
+{
+    var minute=0;
+    if (targetpath.length>0)
+        minute=targetpath[targetpath.length-1][0];
+        
+    targetpath.push([minute+1,25]);
+    draw();
+    update_text();
+}
 function getTargetPathAt(timenow)
 {
     if (targetpath.length==0)
@@ -111,7 +126,7 @@ function draw()
         heatingctl.value='';
     }
     
-    timectl.value=format(Math.floor(timenow/60),2)+":"+format(timenow%60,2);
+    timectl.value=''+timenow;
     realtempctl.value=fmt(actualpath[timenow]);
     shouldtempctl.value=fmt(getTargetPathAt(timenow));
     
@@ -136,7 +151,7 @@ function draw()
     {
         var x1=minutes2x(x);
         var y1=canvas_y-5;
-        ctx.fillText(format(Math.floor(x/60),2)+":"+format(x%60,2),x1-10,y1);
+        ctx.fillText(format(x),x1-10,y1);
         ctx.moveTo(x1,canvas_y-33);
         ctx.lineTo(x1,canvas_y-27);
         
@@ -171,12 +186,23 @@ function draw()
         if (i==0)
             ctx.moveTo(x1,y1);
         else
-            ctx.lineTo(x1,y1);
-        
+            ctx.lineTo(x1,y1);        
     }
     ctx.lineWidth=3.0;
     ctx.strokeStyle = '#109f10';
+    ctx.fillStyle = '#109f10';
     ctx.stroke();
+
+    for(var i=0;i<targetpath.length;++i)
+    {
+        ctx.beginPath();
+        var x1=minutes2x(targetpath[i][0]);
+        var y1=celsius2y(targetpath[i][1]);
+        ctx.arc(x1,y1,MathMax(rx*0.3,ry*0.3),0,2*Math.PI);
+        ctx.fill();
+    }
+    
+    
     ctx.strokeStyle = '#000000';
 
 
@@ -233,23 +259,23 @@ function onresize()
     canvas.style.position='absolute';
     controls.style.position='absolute';
     
-    canvas_x=x-30-sidePaneWidth;
-    canvas_y=y-20;
+    canvas_x=x-80-sidePaneWidth;
+    canvas_y=y-50;
     canvas.width=canvas_x;
     canvas.height=canvas_y;
     canvas.style.width=canvas_x;
     canvas.style.height=canvas_y;
-    controls.style.left=x-sidePaneWidth-10;
+    controls.style.left=x-sidePaneWidth-40;
     controls.style.width=sidePaneWidth;
-    controls.style.height=y-20;
+    controls.style.height=y-50;
 
 
     cx=canvas_x-70;
     cy=canvas_y-60;
     rx=cx/100.0;
     ry=cy/100.0;
-
 }
+
 function removeAll()
 {
     targetpath=[];
@@ -258,27 +284,126 @@ function removeAll()
     draw();
     update_text();
 }
+function onresizeevent()
+{
+    onresize();
+    draw();
+
+}
 function onMouseClick(e)
 {
-    var mx=e.clientX;
-    var my=e.clientY;
+    var canvas=document.getElementById('canvas');
+    canoffset = $(canvas).offset();
+    var mx = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft - Math.floor(canoffset.left);
+    var my = e.clientY + document.body.scrollTop + document.documentElement.scrollTop - Math.floor(canoffset.top) + 1;
+
     var deg_c=(y2celsius(my));
     var minute=parseInt(x2minutes(mx));
-    
-    if (targetpath.length==0 || targetpath[targetpath.length-1][0]<minute)
+
+    var edited=0;
+    for(var i=0;i<targetpath.length;++i)
     {
-        targetpath.push([minute,deg_c]);    
+        var tminute=targetpath[i][0];
+        var tdeg_c=targetpath[i][1];
+        if (minute==tminute && Math.abs(tdeg_c-deg_c)<ry)
+        {
+            targetpath.splice(i,1);
+            edited=1;    
+            break;
+        }
+        else
+        if (minute==tminute)
+        {
+            targetpath[i][1]=deg_c;
+            edited=1;    
+            break;
+        }
+    }
+    
+    if (!edited)
+    {
+        if (targetpath.length==0 || targetpath[targetpath.length-1][0]<minute)
+        {
+            edited=1;
+            targetpath.push([minute,deg_c]);    
+        }
+        else if (targetpath[0][0]>minute)
+        {
+            edited=1;
+            targetpath.splice(0,0,[minute,deg_c]);
+        }
+        else
+        {
+            for(var i=0;i<targetpath.length-1;++i)
+            {
+                var a=targetpath[i][0];
+                var b=targetpath[i+1][0];
+                if (a<minute && minute<b)
+                {
+                    targetpath.splice(i+1,0,[minute,deg_c]);
+                    edited=1;
+                    break;
+                }
+            }
+        }
     }
 
 
-    save();
     draw();
     update_text();
+    save();
     
 }
-
+text_no_validate=0;
+function textchanged(idx,elemname,axis)
+{
+    axis=parseInt(axis);
+    var elem=document.getElementById(elemname);
+    
+    var value=parseFloat(elem.value);
+    if (axis==1)
+        value=parseInt(value);
+      
+    idx=parseInt(idx);
+    if (axis==0 && text_no_validate!=1)
+    {
+        fixed=0;
+        if (idx!=0)
+        {
+            var bef=targetpath[idx-1][0];
+            if (value<=bef)
+            {
+                value=bef+1;
+                fixed=1;
+            }
+        }
+        if (idx!=targetpath.length-1)
+        {
+            var aft=targetpath[idx+1][0];
+            if (value>=aft)
+            {
+                value=aft-1;        
+                fixed=1;
+            }
+        }
+    }
+    
+    targetpath[idx][axis]=value;
+    
+    draw();
+    save();
+    
+}
+function Remove(idx)
+{
+    targetpath.splice(parseInt(idx),1);
+    draw();
+    save();
+    update_text();
+}
 function update_text()
 {
+    text_no_validate=1;
     var e=document.getElementById('textvalues');
     
     var s='<table><tr><td>Tid</td><td>Temp</td></tr>';
@@ -287,11 +412,16 @@ function update_text()
     {
         var minval=targetpath[i][0];
         var degval=targetpath[i][1];
-        s+='<tr><td><input type="text" size="3" value="'+minval+'" /></td> ';
-        s+='<td><input type="text" size="3" value="'+degval+'" />°</td></tr> ';
+        var idnamex='path'+i+'x';
+        s+='<tr><td><input type="text" size="3" id="'+idnamex+'" onchange="textchanged('+i+',\''+idnamex+'\',0)" value="'+minval+'" /></td> ';
+        var idnamey='path'+i+'y';
+        s+='<td><input type="text" size="3" id="'+idnamey+'" onchange="textchanged('+i+',\''+idnamey+'\',1)" value="'+degval.toFixed()+'" />°</td>';
+        s+='<td><button onclick="Remove('+i+')">x</button></td></tr> ';
     }
+    s+='<tr><td colspan="2"><button onclick="add_path_point()">Lägg till punkt</button></td></tr>';
     s+="</table>";
     e.innerHTML=s;
+    text_no_validate=0;
     
 }
 
@@ -318,7 +448,6 @@ function registermouseevents()
 
 
 }
-
 function save()
 {
     var status=document.getElementById('status');
