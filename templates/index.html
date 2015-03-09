@@ -40,9 +40,9 @@ window.onload=function()
 
 <div id="controls" class="mainbox" style="border:1px solid #000000;overflow:auto;">
 Status: <span id="status"></span> - <span id="playing"></span><br/>
-Tid:<input id="timenow" type="text"> </input><br/>
-Temperatur:<input id="realtemp" type="text"> </input><br/>
-Börvärde:<input id="shouldtemp" type="text"> </input><br/>
+Tid:<input id="timenow" type="text" readonly="1"> </input><br/>
+Temperatur:<input id="realtemp" type="text" readonly="1"> </input><br/>
+Börvärde:<input id="shouldtemp" type="text" readonly="1"> </input><br/>
 <table>
 <tr>
 <td> <button onclick="rewind()">&lt;&lt;</button></td>
@@ -51,7 +51,7 @@ Börvärde:<input id="shouldtemp" type="text"> </input><br/>
 </tr>
 </table>
 
-Värmning:<input id="heating" type="text"> </input><br/>
+Värmning:<input id="heating" type="text" readonly="1"> </input><br/>
 
 <div id="textvalues">
 
