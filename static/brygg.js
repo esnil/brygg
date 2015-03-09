@@ -6,10 +6,8 @@ canvas_y=460;
 minutes=60;
 degrees=100.0;
 
-timenow=4;
+timenow=0;
 
-targetpath=[[0,20],[10,60],[15,45],[50,26]];
-actualpath=[30,35,38,39,39,41,43,49,53,56,56,57,58,59,60,61,60,59,58,57,56,55,54,53,51,49,47,40];
 
 cx=400; //size of active portion of canvas
 cy=300;
@@ -62,8 +60,10 @@ function add_path_point()
     draw();
     update_text();
 }
-function getTargetPathAt(timenow)
+function getTargetPathAt(ctimenow)
 {
+    if (ctimenow==undefined || ctimenow==null)
+        return 0;
     if (targetpath.length==0)
         return 0;
     if (targetpath.length==1)
@@ -78,16 +78,16 @@ function getTargetPathAt(timenow)
         var adeg=a[1];
         var bdeg=b[1];
         
-        if (timenow>=amin && timenow<=bmin)
+        if (ctimenow>=amin && ctimenow<=bmin)
         {
-            var p=(timenow-amin)/(bmin-amin);
+            var p=(ctimenow-amin)/(bmin-amin);
             var deg=adeg + (bdeg-adeg)*p;
             return deg;
         }                
     }
-    if (timenow<=targetpath[0][0])
+    if (ctimenow<=targetpath[0][0])
         return targetpath[0][1];
-    if (timenow>=targetpath[targetpath.length-1][0])
+    if (ctimenow>=targetpath[targetpath.length-1][0])
         return targetpath[targetpath.length-1][1];
     return 0;
 }
@@ -97,37 +97,8 @@ function draw()
     var timectl=document.getElementById('timenow');
     var realtempctl=document.getElementById('realtemp');
     var shouldtempctl=document.getElementById('shouldtemp');
-    var coolingctl=document.getElementById('cooling');
-    var heatingctl=document.getElementById('heating');
     
-    var targ=getTargetPathAt(timenow);
-    if (actualpath[timenow] && targ)
-    {
-        var act=actualpath[timenow];
-        if (act>targ+1.0)
-        {
-            coolingctl.value='På';
-            heatingctl.value='Av';
-        }
-        else if (act<targ-1.0)
-        {
-            coolingctl.value='Av';
-            heatingctl.value='På';
-        }
-        else
-        {
-            coolingctl.value='Av';
-            heatingctl.value='Av';
-        }
-    }
-    else
-    {
-        coolingctl.value='';
-        heatingctl.value='';
-    }
     
-    timectl.value=''+timenow;
-    realtempctl.value=fmt(actualpath[timenow]);
     shouldtempctl.value=fmt(getTargetPathAt(timenow));
     
     var c=document.getElementById('canvas');
@@ -229,12 +200,16 @@ function draw()
     ctx.lineWidth=5.0;
     ctx.strokeStyle="#ff7070";
     ctx.fillStyle="#ff7070";
-    var x1=minutes2x(timenow);
-    ctx.beginPath();
-    ctx.moveTo(x1,40);
-    ctx.lineTo(x1,cy);
-    ctx.stroke();
-    ctx.fillText("Nu",x1+5,60);
+    
+    if (timenow!=undefined && timenow!=null)
+    {
+        var x1=minutes2x(timenow);
+        ctx.beginPath();
+        ctx.moveTo(x1,40);
+        ctx.lineTo(x1,cy);
+        ctx.stroke();
+        ctx.fillText("Nu",x1+5,60);
+    }
 
     //ctx.moveTo(10,10);
     //ctx.lineTo(200,200);
@@ -427,18 +402,39 @@ function update_text()
 
 function play()
 {
-    alert('Inte implementerat än!');
-    draw();
+    $.ajax( {
+        type: "POST",
+        url: "/play",        
+        success: function( data ) {
+            var result=JSON.parse(data);
+            var status=document.getElementById('status');
+            status.innerHTML=result['status'];
+        }
+    });
 }
 function rewind()
 {
-    timenow-=1;
-    draw();
+    $.ajax( {
+        type: "POST",
+        url: "/rewind",        
+        success: function( data ) {
+            var result=JSON.parse(data);
+            var status=document.getElementById('status');
+            status.innerHTML=result['status'];
+        }
+    });
 }
 function forward()
 {
-    timenow+=1;
-    draw();
+    $.ajax( {
+        type: "POST",
+        url: "/forward",        
+        success: function( data ) {
+            var result=JSON.parse(data);
+            var status=document.getElementById('status');
+            status.innerHTML=result['status'];
+        }
+    });
 }
 
 function registermouseevents()
@@ -452,16 +448,72 @@ function save()
 {
     var status=document.getElementById('status');
     status.innerHTML='Saving';
-
     $.ajax( {
         type: "POST",
         url: "/save",
-        data: '',
+        data: {data:JSON.stringify(targetpath)},
         success: function( data ) {
+            var result=JSON.parse(data);
             var status=document.getElementById('status');
-            status.innerHTML='OK';
-        },
-        dataType:'json'    
+            status.innerHTML=result['status'];
+        }
+    });
+
+}
+
+
+refresh_in_prog=0
+function updatestate()
+{
+    if (refresh_in_prog>0)
+        refresh_in_prog-=1;
+        
+    if (refresh_in_prog>0)
+        return;
+    refresh_in_prog=10;
+    $.ajax( {
+        type: "GET",
+        url: "/getstate",       
+        success: function( data ) {
+            var result=JSON.parse(data);
+            var curpower=result['curpower'];
+            var curtime=result['curtime'];
+            var timenowe=document.getElementById('timenow');
+            timenowe.value=result['curtime'];
+            var tempnow=document.getElementById('realtemp');
+            tempnow.value=result['curtemp'];
+            var power=document.getElementById('heating');
+
+            var eplay=document.getElementById('playing');
+            var playbutton=document.getElementById('playbutton');
+            if (result['playing'])     
+            {      
+                eplay.innerHTML="Playing";
+                playbutton.innerHTML="Stop";
+            }
+            else
+            {
+                eplay.innerHTML="Paused";
+                playbutton.innerHTML="Play";
+            }
+            
+            if (result['curpower']==1)
+            {
+                power.value='På';
+            }
+            else
+            {
+                power.value='Av';
+            }
+            
+            if (timenow!=curtime)
+            {
+                timenow=curtime;
+                draw();
+            }
+            
+            refresh_in_prog=0;
+        }
     });
 
 }
