@@ -256,8 +256,8 @@ function onresize()
     
     size_x=x;
     size_y=y;
-    canvas.style.position='absolute';
-    controls.style.position='absolute';
+    canvas.style.position='fixed';
+    controls.style.position='fixed';
     
     canvas_x=x-80-sidePaneWidth;
     canvas_y=y-50;
@@ -265,7 +265,7 @@ function onresize()
     canvas.height=canvas_y;
     canvas.style.width=canvas_x;
     canvas.style.height=canvas_y;
-    controls.style.left=x-sidePaneWidth-40;
+    controls.style.left=''+(size_x-sidePaneWidth-40)+'px';
     controls.style.width=sidePaneWidth;
     controls.style.height=canvas_y;
 
