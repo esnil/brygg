@@ -267,7 +267,7 @@ function onresize()
     canvas.style.height=canvas_y;
     controls.style.left=x-sidePaneWidth-40;
     controls.style.width=sidePaneWidth;
-    controls.style.height=y-50;
+    controls.style.height=canvas_y;
 
 
     cx=canvas_x-70;
